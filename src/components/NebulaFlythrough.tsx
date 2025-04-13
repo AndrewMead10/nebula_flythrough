@@ -31,25 +31,13 @@ export const NebulaFlythrough = () => {
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
         const renderer = new THREE.WebGLRenderer({ antialias: true })
         renderer.setSize(window.innerWidth, window.innerHeight)
-        containerRef.current.appendChild(renderer.domElement)
-
-        const gridHelper = new THREE.GridHelper(10, 10)
-        scene.add(gridHelper)
+        containerRef.current.appendChild(renderer.domElement)        
 
         const initialCameraZ = 15
         const targetCameraZ = 10
         const animationDuration = 10000
         camera.position.set(0, 5, initialCameraZ)
         camera.lookAt(0, 0, 0)
-
-        // Add OrbitControls
-        const controls = new OrbitControls(camera, renderer.domElement)
-        controls.enableDamping = true
-        controls.dampingFactor = 0.05
-        controls.screenSpacePanning = false
-        controls.minDistance = 3
-        controls.maxDistance = 20
-        controls.maxPolarAngle = Math.PI / 2
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1)
         scene.add(ambientLight)
@@ -149,27 +137,11 @@ export const NebulaFlythrough = () => {
             
             scene.add(mesh)
             
-            // Log mesh properties
-            console.log('Mesh added to scene:', mesh)
-            
             if (sceneRef.current) {
                 sceneRef.current.mesh = mesh
             }
             
             console.log('Mesh created and added to scene')
-            
-            // Add a simple animation to the displacement scale
-            const animateDisplacement = () => {
-                if (sceneRef.current && sceneRef.current.mesh) {
-                    const material = sceneRef.current.mesh.material as THREE.ShaderMaterial;
-                    if (material.uniforms) {
-                        material.uniforms.displacementScale.value = 1.0 + Math.sin(Date.now() * 0.001) * 0.5;
-                    }
-                }
-                requestAnimationFrame(animateDisplacement);
-            };
-            
-            animateDisplacement();
             
         }).catch(error => {
             console.error('Error in texture loading:', error)
@@ -187,30 +159,17 @@ export const NebulaFlythrough = () => {
 
         const animate = () => {
             if (!sceneRef.current) return
-            const { scene, camera, renderer, controls, startTime, initialCameraZ, targetCameraZ, animationDuration } = sceneRef.current
+            const { scene, camera, renderer, startTime, initialCameraZ, targetCameraZ, animationDuration } = sceneRef.current
 
             const currentTime = Date.now()
             const elapsedTime = currentTime - startTime
             sceneRef.current.animationProgress = Math.min(elapsedTime / animationDuration, 1)
 
-            // Only update camera position if controls are not being used
-            if (controls && !controls.enabled) {
-                camera.position.z = THREE.MathUtils.lerp(
-                    initialCameraZ,
-                    targetCameraZ,
-                    sceneRef.current.animationProgress
-                )
-            }
-
-            // Update controls
-            if (controls) {
-                controls.update()
-            }
-
-            // Rotate the scene slightly for better visualization
-            if (sceneRef.current.mesh) {
-                sceneRef.current.mesh.rotation.y += 0.001
-            }
+            camera.position.z = THREE.MathUtils.lerp(
+                initialCameraZ,
+                targetCameraZ,
+                sceneRef.current.animationProgress
+            )
 
             renderer.render(scene, camera)
             requestAnimationFrame(animate)
@@ -220,7 +179,6 @@ export const NebulaFlythrough = () => {
             scene,
             camera,
             renderer,
-            controls,
             animationProgress: 0,
             startTime: Date.now(),
             initialCameraZ,
@@ -244,7 +202,7 @@ export const NebulaFlythrough = () => {
         }
     }, [])
 
-    return <div ref={containerRef} className="w-full h-screen" />
+    return <div ref={containerRef} className="w-full h-full absolute inset-0" />
 }
 
 export default NebulaFlythrough 
