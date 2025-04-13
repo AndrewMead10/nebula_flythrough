@@ -75,11 +75,11 @@ export const NebulaFlythrough = () => {
             const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
             const stars: StarData[] = []
-            const threshold = 240
+            const threshold = 100
             const visited = new Set<string>()
 
-            const findStarBounds = (startX: number, startY: number): { minX: number, minY: number, maxX: number, maxY: number } => {
-                const bounds = { minX: startX, minY: startY, maxX: startX, maxY: startY }
+            const findStarBounds = (startX: number, startY: number): { minX: number, minY: number, maxX: number, maxY: number, pixels: number } => {
+                const bounds = { minX: startX, minY: startY, maxX: startX, maxY: startY, pixels: 0 }
                 const queue = [[startX, startY]]
                 visited.add(`${startX},${startY}`)
 
@@ -93,6 +93,7 @@ export const NebulaFlythrough = () => {
                         bounds.minY = Math.min(bounds.minY, y)
                         bounds.maxX = Math.max(bounds.maxX, x)
                         bounds.maxY = Math.max(bounds.maxY, y)
+                        bounds.pixels++
 
                         const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
                         for (const [dx, dy] of directions) {
@@ -120,6 +121,7 @@ export const NebulaFlythrough = () => {
                     
                     if (brightness > threshold && !visited.has(key)) {
                         const bounds = findStarBounds(x, y)
+                        
                         const width = bounds.maxX - bounds.minX + 1
                         const height = bounds.maxY - bounds.minY + 1
                         const size = Math.max(width, height)
@@ -159,7 +161,7 @@ export const NebulaFlythrough = () => {
                                 const starIndex = (py * finalSize + px) * 4
                                 
                                 let maskValue = maskImageData.data[maskIndex] / 255
-                                if (maskValue < 0.9) {
+                                if (maskValue < 0.6) {
                                     maskValue = 0
                                 }
                                 starImageData.data[starIndex + 3] = Math.floor(maskValue * 255)
@@ -221,8 +223,14 @@ export const NebulaFlythrough = () => {
                 img.onload = () => resolve(img)
                 img.onerror = reject
                 img.src = '/starful.jpg'
+            }),
+            new Promise<HTMLImageElement>((resolve, reject) => {
+                const img = new Image()
+                img.onload = () => resolve(img)
+                img.onerror = reject
+                img.src = '/starless_mask.png'
             })
-        ]).then(([colorTexture, depthTexture, starfulImage]) => {
+        ]).then(([colorTexture, depthTexture, starfulImage, maskImage]) => {
             console.log('Both textures loaded, creating mesh...')
             
             // Calculate aspect ratio from the loaded texture
@@ -284,7 +292,7 @@ export const NebulaFlythrough = () => {
             scene.add(mesh)
             
             const starSprites: THREE.Sprite[] = []
-            const starData = extractStarData(starfulImage, starfulImage)
+            const starData = extractStarData(maskImage, starfulImage)
             
             starData.forEach(star => {
                 const spriteMaterial = new THREE.SpriteMaterial({
@@ -294,10 +302,12 @@ export const NebulaFlythrough = () => {
                 })
                 
                 const sprite = new THREE.Sprite(spriteMaterial)
+                const distance = 7 - Math.random() * 2 + 0.5
+                const reverseDistance = 8 - distance
                 sprite.position.set(
                     star.x * planeWidth / 2,
-                    Math.random() * 2 ,
-                    star.y * planeHeight / 2
+                    reverseDistance ,
+                    star.y * planeHeight / 2 
                 )
                 sprite.scale.set(0.1, 0.1, 1)
                 sprite.material.opacity = star.brightness
