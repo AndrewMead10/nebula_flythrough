@@ -1,4 +1,4 @@
-export const BACKEND_URL = 'http://192.168.0.119:8001';
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
 
 export const API_ENDPOINTS = {
     PROCESS_IMAGE: `${BACKEND_URL}/process_image/`,

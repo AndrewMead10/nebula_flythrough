@@ -61,6 +61,22 @@ You can adjust various parameters in the `src/components/NebulaFlythrough.tsx` f
 - `animationDuration`: Length of the animation in milliseconds (default: 10000)
 - `displacementScale`: Strength of the 3D effect (default: 2.0)
 
+## Environment Variables
+
+The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
+
+```
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+```
+
+You can copy the `.env.example` file as a starting point:
+
+```bash
+cp .env.example .env
+```
+
+Then modify the values as needed for your environment.
+
 ## License
 
 MIT

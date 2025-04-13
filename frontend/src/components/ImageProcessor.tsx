@@ -1,8 +1,8 @@
 'use client';
 
+import { API_ENDPOINTS } from '@/constants';
 import { useState } from 'react';
 import NebulaFlythrough from './NebulaFlythrough';
-import { API_ENDPOINTS } from '@/constants';
 
 export default function ImageProcessor() {
     const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -26,6 +26,7 @@ export default function ImageProcessor() {
             const response = await fetch(API_ENDPOINTS.PROCESS_IMAGE, {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
             });
 
             if (!response.ok) {

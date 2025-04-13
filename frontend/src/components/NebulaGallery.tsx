@@ -1,8 +1,8 @@
 'use client'
 
+import { API_ENDPOINTS } from '@/constants'
 import { useEffect, useState } from 'react'
 import NebulaFlythrough from './NebulaFlythrough'
-import { API_ENDPOINTS } from '@/constants'
 
 type ImageData = {
     id: number
@@ -40,16 +40,18 @@ export default function NebulaGallery() {
     const fetchImages = async (page: number) => {
         try {
             setLoading(true)
-            const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page))
+            const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page), {
+                credentials: 'include'
+            })
             const data = await response.json()
             
             // Fetch base64 images for each image
             const processedImages = await Promise.all(
                 data.images.map(async (image: ImageData) => {
                     const [originalResponse, starlessResponse, maskResponse] = await Promise.all([
-                        fetch(API_ENDPOINTS.GET_IMAGE('original', image.id)),
-                        fetch(API_ENDPOINTS.GET_IMAGE('starless', image.id)),
-                        fetch(API_ENDPOINTS.GET_IMAGE('mask', image.id))
+                        fetch(API_ENDPOINTS.GET_IMAGE('original', image.id), { credentials: 'include' }),
+                        fetch(API_ENDPOINTS.GET_IMAGE('starless', image.id), { credentials: 'include' }),
+                        fetch(API_ENDPOINTS.GET_IMAGE('mask', image.id), { credentials: 'include' })
                     ]);
 
                     const [originalData, starlessData, maskData] = await Promise.all([
