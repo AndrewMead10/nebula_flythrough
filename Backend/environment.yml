@@ -1,0 +1,14 @@
+name: starnet-api
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - pillow
+  - tensorflow
+  - numpy
+  - tifffile
+  - scipy 
