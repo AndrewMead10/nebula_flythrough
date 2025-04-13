@@ -10,12 +10,19 @@ type SceneRef = {
     renderer: THREE.WebGLRenderer
     controls?: OrbitControls
     mesh?: THREE.Mesh
+    starSprites: THREE.Sprite[]
     animationProgress: number
     startTime: number
     initialCameraZ: number
     targetCameraZ: number
     animationDuration: number
     cleanup: () => void
+}
+
+type StarData = {
+    x: number
+    y: number
+    brightness: number
 }
 
 export const NebulaFlythrough = () => {
@@ -55,10 +62,45 @@ export const NebulaFlythrough = () => {
         
         console.log('Starting to load textures...')
         
+        const extractStarData = (maskImage: HTMLImageElement): StarData[] => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return []
+
+            canvas.width = maskImage.width
+            canvas.height = maskImage.height
+
+            ctx.drawImage(maskImage, 0, 0)
+            const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+            const stars: StarData[] = []
+            const threshold = 230
+
+            for (let y = 0; y < maskData.height; y++) {
+                for (let x = 0; x < maskData.width; x++) {
+                    const i = (y * maskData.width + x) * 4
+                    const brightness = maskData.data[i]
+                    
+                    if (brightness > threshold) {
+                        stars.push({
+                            x: (x / maskData.width) * 2 - 1,
+                            y: -(y / maskData.height) * 2 + 1,
+                            brightness: brightness / 255
+                        })
+                    }
+                }
+            }
+
+            console.log('Found', stars.length, 'stars')
+            
+
+            return stars
+        }
+
         Promise.all([
             new Promise<THREE.Texture>((resolve, reject) => {
                 textureLoader.load(
-                    '/nebula.jpg',
+                    '/starless.png',
                     (texture) => {
                         console.log('Nebula texture loaded successfully', texture)
                         texture.needsUpdate = true
@@ -147,8 +189,31 @@ export const NebulaFlythrough = () => {
             
             scene.add(mesh)
             
+            const starSprites: THREE.Sprite[] = []
+            const starData = extractStarData(colorTexture.image)
+            
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: colorTexture,
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            })
+
+            starData.forEach(star => {
+                const sprite = new THREE.Sprite(spriteMaterial)
+                sprite.position.set(
+                    star.x * planeWidth / 2,
+                    Math.random() * 10,
+                    star.y * planeHeight / 2
+                )
+                sprite.scale.set(0.1, 0.1, 1)
+                sprite.material.opacity = star.brightness
+                scene.add(sprite)
+                starSprites.push(sprite)
+            })
+            
             if (sceneRef.current) {
                 sceneRef.current.mesh = mesh
+                sceneRef.current.starSprites = starSprites
             }
             
             console.log('Mesh created and added to scene')
@@ -169,7 +234,7 @@ export const NebulaFlythrough = () => {
 
         const animate = () => {
             if (!sceneRef.current) return
-            const { scene, camera, renderer, startTime, animationDuration } = sceneRef.current
+            const { scene, camera, renderer, startTime, animationDuration, starSprites } = sceneRef.current
 
             const currentTime = Date.now()
             const elapsedTime = currentTime - startTime
@@ -181,6 +246,10 @@ export const NebulaFlythrough = () => {
                 sceneRef.current.animationProgress
             )
 
+            starSprites.forEach(sprite => {
+                sprite.material.rotation += 0.001
+            })
+
             renderer.render(scene, camera)
             requestAnimationFrame(animate)
         }
@@ -189,6 +258,7 @@ export const NebulaFlythrough = () => {
             scene,
             camera,
             renderer,
+            starSprites: [],
             animationProgress: 0,
             startTime: Date.now(),
             initialCameraZ,
