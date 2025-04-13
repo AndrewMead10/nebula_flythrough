@@ -345,9 +345,9 @@ export const NebulaFlythrough = () => {
             const elapsedTime = currentTime - startTime
             sceneRef.current.animationProgress = Math.min(elapsedTime / animationDuration, 1)
 
-            camera.position.y = THREE.MathUtils.lerp(
+            camera.position.z = THREE.MathUtils.lerp(
                 0,
-                0,
+                7,
                 sceneRef.current.animationProgress
             )
 
