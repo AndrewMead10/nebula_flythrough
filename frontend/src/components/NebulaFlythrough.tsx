@@ -23,6 +23,7 @@ type StarData = {
     x: number
     y: number
     brightness: number
+    texture: THREE.Texture
 }
 
 export const NebulaFlythrough = () => {
@@ -62,7 +63,7 @@ export const NebulaFlythrough = () => {
         
         console.log('Starting to load textures...')
         
-        const extractStarData = (maskImage: HTMLImageElement): StarData[] => {
+        const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLImageElement): StarData[] => {
             const canvas = document.createElement('canvas')
             const ctx = canvas.getContext('2d')
             if (!ctx) return []
@@ -74,26 +75,113 @@ export const NebulaFlythrough = () => {
             const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
             const stars: StarData[] = []
-            const threshold = 230
+            const threshold = 240
+            const visited = new Set<string>()
+
+            const findStarBounds = (startX: number, startY: number): { minX: number, minY: number, maxX: number, maxY: number } => {
+                const bounds = { minX: startX, minY: startY, maxX: startX, maxY: startY }
+                const queue = [[startX, startY]]
+                visited.add(`${startX},${startY}`)
+
+                while (queue.length > 0) {
+                    const [x, y] = queue.shift()!
+                    const i = (y * maskData.width + x) * 4
+                    const brightness = maskData.data[i]
+
+                    if (brightness > threshold) {
+                        bounds.minX = Math.min(bounds.minX, x)
+                        bounds.minY = Math.min(bounds.minY, y)
+                        bounds.maxX = Math.max(bounds.maxX, x)
+                        bounds.maxY = Math.max(bounds.maxY, y)
+
+                        const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+                        for (const [dx, dy] of directions) {
+                            const newX = x + dx
+                            const newY = y + dy
+                            const key = `${newX},${newY}`
+                            
+                            if (newX >= 0 && newX < maskData.width && 
+                                newY >= 0 && newY < maskData.height && 
+                                !visited.has(key)) {
+                                visited.add(key)
+                                queue.push([newX, newY])
+                            }
+                        }
+                    }
+                }
+                return bounds
+            }
 
             for (let y = 0; y < maskData.height; y++) {
                 for (let x = 0; x < maskData.width; x++) {
                     const i = (y * maskData.width + x) * 4
                     const brightness = maskData.data[i]
+                    const key = `${x},${y}`
                     
-                    if (brightness > threshold) {
+                    if (brightness > threshold && !visited.has(key)) {
+                        const bounds = findStarBounds(x, y)
+                        const width = bounds.maxX - bounds.minX + 1
+                        const height = bounds.maxY - bounds.minY + 1
+                        const size = Math.max(width, height)
+                        const padding = Math.ceil(size * 0.2)
+                        const finalSize = size + padding * 2
+
+                        const starCanvas = document.createElement('canvas')
+                        const starCtx = starCanvas.getContext('2d')
+                        if (!starCtx) continue
+
+                        starCanvas.width = finalSize
+                        starCanvas.height = finalSize
+
+                        const sourceX = Math.max(0, bounds.minX - padding)
+                        const sourceY = Math.max(0, bounds.minY - padding)
+                        const sourceWidth = Math.min(finalSize, maskImage.width - sourceX)
+                        const sourceHeight = Math.min(finalSize, maskImage.height - sourceY)
+
+                        starCtx.drawImage(
+                            starfulImage,
+                            sourceX,
+                            sourceY,
+                            sourceWidth,
+                            sourceHeight,
+                            0,
+                            0,
+                            sourceWidth,
+                            sourceHeight
+                        )
+
+                        const starImageData = starCtx.getImageData(0, 0, finalSize, finalSize)
+                        const maskImageData = ctx.getImageData(sourceX, sourceY, sourceWidth, sourceHeight)
+
+                        for (let py = 0; py < sourceHeight; py++) {
+                            for (let px = 0; px < sourceWidth; px++) {
+                                const maskIndex = (py * sourceWidth + px) * 4
+                                const starIndex = (py * finalSize + px) * 4
+                                
+                                let maskValue = maskImageData.data[maskIndex] / 255
+                                if (maskValue < 0.9) {
+                                    maskValue = 0
+                                }
+                                starImageData.data[starIndex + 3] = Math.floor(maskValue * 255)
+                            }
+                        }
+
+                        starCtx.putImageData(starImageData, 0, 0)
+
+                        const starTexture = new THREE.CanvasTexture(starCanvas)
+                        starTexture.needsUpdate = true
+
                         stars.push({
                             x: (x / maskData.width) * 2 - 1,
                             y: -(y / maskData.height) * 2 + 1,
-                            brightness: brightness / 255
+                            brightness: brightness / 255,
+                            texture: starTexture
                         })
                     }
                 }
             }
 
             console.log('Found', stars.length, 'stars')
-            
-
             return stars
         }
 
@@ -127,8 +215,14 @@ export const NebulaFlythrough = () => {
                         reject(error)
                     }
                 )
+            }),
+            new Promise<HTMLImageElement>((resolve, reject) => {
+                const img = new Image()
+                img.onload = () => resolve(img)
+                img.onerror = reject
+                img.src = '/starful.jpg'
             })
-        ]).then(([colorTexture, depthTexture]) => {
+        ]).then(([colorTexture, depthTexture, starfulImage]) => {
             console.log('Both textures loaded, creating mesh...')
             
             // Calculate aspect ratio from the loaded texture
@@ -190,19 +284,19 @@ export const NebulaFlythrough = () => {
             scene.add(mesh)
             
             const starSprites: THREE.Sprite[] = []
-            const starData = extractStarData(colorTexture.image)
+            const starData = extractStarData(starfulImage, starfulImage)
             
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: colorTexture,
-                transparent: true,
-                blending: THREE.AdditiveBlending
-            })
-
             starData.forEach(star => {
+                const spriteMaterial = new THREE.SpriteMaterial({
+                    map: star.texture,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending
+                })
+                
                 const sprite = new THREE.Sprite(spriteMaterial)
                 sprite.position.set(
                     star.x * planeWidth / 2,
-                    Math.random() * 10,
+                    Math.random() * 2 ,
                     star.y * planeHeight / 2
                 )
                 sprite.scale.set(0.1, 0.1, 1)
@@ -245,10 +339,6 @@ export const NebulaFlythrough = () => {
                 2,
                 sceneRef.current.animationProgress
             )
-
-            starSprites.forEach(sprite => {
-                sprite.material.rotation += 0.001
-            })
 
             renderer.render(scene, camera)
             requestAnimationFrame(animate)
