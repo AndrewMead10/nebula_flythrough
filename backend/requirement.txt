@@ -1,0 +1,9 @@
+astropy
+numpy
+fastapi
+uvicorn
+python-multipart
+pillow
+tensorflow
+tifffile
+scipy
