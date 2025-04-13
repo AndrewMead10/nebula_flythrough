@@ -73,7 +73,7 @@ export const NebulaFlythrough = () => {
             }),
             new Promise<THREE.Texture>((resolve, reject) => {
                 textureLoader.load(
-                    '/depth.png',
+                    '/depth-nebula.png',
                     (texture) => {
                         console.log('Depth texture loaded successfully', texture)
                         texture.needsUpdate = true
