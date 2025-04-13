@@ -2,14 +2,12 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { SceneRef } from '../types/nebula'
 import { extractStarData } from '../utils/starExtractor'
 import { createNebulaScene } from './NebulaScene'
 import { createStarSprites } from './StarSprites'
 
 export const NebulaFlythrough = () => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const sceneRef = useRef<SceneRef | null>(null)
 
     useEffect(() => {
         if (!containerRef.current) return
