@@ -49,8 +49,8 @@ export const NebulaFlythrough = () => {
         const initialCameraZ = 15
         const targetCameraZ = 10
         const animationDuration = 10000
-        camera.position.set(0, 8, 0)
-        camera.lookAt(0, 0, 0)
+        camera.position.set(0, 0, 0)
+        camera.lookAt(0, 0, 10)
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1)
         scene.add(ambientLight)
@@ -286,8 +286,9 @@ export const NebulaFlythrough = () => {
             
             const mesh = new THREE.Mesh(geometry, material)
             
-            mesh.position.set(0, 0, 0)
-            mesh.rotation.x = -Math.PI / 2
+            mesh.position.set(0, 0, 10)
+            mesh.rotation.x = 0
+            mesh.rotation.y = Math.PI
             
             scene.add(mesh)
             
@@ -302,12 +303,12 @@ export const NebulaFlythrough = () => {
                 })
                 
                 const sprite = new THREE.Sprite(spriteMaterial)
-                const distance = 7 - Math.random() * 2 + 0.5
-                const reverseDistance = 8 - distance
+                const distance = Math.random() * 5 + 5
+                const scaleFactor = distance / 10
                 sprite.position.set(
-                    star.x * planeWidth / 2,
-                    reverseDistance ,
-                    star.y * planeHeight / 2 
+                    star.x * planeWidth / 2 * scaleFactor,
+                    star.y * planeHeight / 2 * scaleFactor,
+                    distance
                 )
                 sprite.scale.set(0.1, 0.1, 1)
                 sprite.material.opacity = star.brightness
@@ -345,8 +346,8 @@ export const NebulaFlythrough = () => {
             sceneRef.current.animationProgress = Math.min(elapsedTime / animationDuration, 1)
 
             camera.position.y = THREE.MathUtils.lerp(
-                5,
-                2,
+                0,
+                0,
                 sceneRef.current.animationProgress
             )
 
