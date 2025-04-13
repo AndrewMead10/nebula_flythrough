@@ -25,6 +25,11 @@ export const NebulaFlythrough = () => {
     useEffect(() => {
         if (!containerRef.current) return
 
+        // Clean up any existing canvas
+        while (containerRef.current.firstChild) {
+            containerRef.current.removeChild(containerRef.current.firstChild)
+        }
+
         const scene = new THREE.Scene()
         scene.background = new THREE.Color(0x000000)
         
@@ -187,7 +192,9 @@ export const NebulaFlythrough = () => {
             cleanup: () => {
                 window.removeEventListener('resize', handleResize)
                 if (containerRef.current) {
-                    containerRef.current.removeChild(renderer.domElement)
+                    while (containerRef.current.firstChild) {
+                        containerRef.current.removeChild(containerRef.current.firstChild)
+                    }
                 }
                 renderer.dispose()
             }
