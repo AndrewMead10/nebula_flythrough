@@ -2,6 +2,48 @@ import * as THREE from 'three'
 import { StarData } from '../types/nebula'
 import { findStarBounds } from './starBounds'
 
+const generateStarShape = (size: number, brightness: number): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    canvas.width = size
+    canvas.height = size
+
+    const centerX = size / 2
+    const centerY = size / 2
+    const radius = size / 2
+
+    ctx.save()
+    ctx.translate(centerX, centerY)
+
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+    gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`)
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+
+    ctx.fillStyle = gradient
+
+    const crossWidth = radius * 0.2
+    const crossLength = radius * 0.8
+
+    if (Math.random() > 0.5) {
+    ctx.beginPath()
+    ctx.rect(-crossWidth/2, -crossLength/2, crossWidth, crossLength)
+        ctx.rect(-crossLength/2, -crossWidth/2, crossLength, crossWidth)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(0, 0, radius * 0.2, 0, Math.PI * 2)
+        ctx.fill()
+    } else {
+        ctx.beginPath()
+        ctx.arc(0, 0, radius * 0.5, 0, Math.PI * 2)
+        ctx.fill()
+    }
+
+    ctx.restore()
+    return canvas
+}
+
 export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLImageElement): StarData[] => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -66,58 +108,26 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
             const size = Math.max(width, height)
             const padding = Math.ceil(size * 0.2)
             const finalSize = size + padding * 2
-
-            const starCanvas = document.createElement('canvas')
-            const starCtx = starCanvas.getContext('2d')
-            if (!starCtx) continue
-
-            starCanvas.width = finalSize
-            starCanvas.height = finalSize
-
-            const sourceX = Math.max(0, bounds.minX - padding)
-            const sourceY = Math.max(0, bounds.minY - padding)
-            const sourceWidth = Math.min(finalSize, maskImage.width - sourceX)
-            const sourceHeight = Math.min(finalSize, maskImage.height - sourceY)
-
-            starCtx.drawImage(
-                starfulImage,
-                sourceX,
-                sourceY,
-                sourceWidth,
-                sourceHeight,
-                0,
-                0,
-                sourceWidth,
-                sourceHeight
-            )
-
-            const starImageData = starCtx.getImageData(0, 0, finalSize, finalSize)
-            const maskImageData = ctx.getImageData(sourceX, sourceY, sourceWidth, sourceHeight)
-
-            for (let py = 0; py < sourceHeight; py++) {
-                for (let px = 0; px < sourceWidth; px++) {
-                    const maskIndex = (py * sourceWidth + px) * 4
-                    const starIndex = (py * finalSize + px) * 4
-                    
-                    let maskValue = maskImageData.data[maskIndex] / 255
-                    if (maskValue < 0.6) {
-                        maskValue = 0
-                    }
-                    starImageData.data[starIndex + 3] = Math.floor(maskValue * 255)
-                }
+            if (finalSize < 2) {
+                continue
             }
 
-            starCtx.putImageData(starImageData, 0, 0)
-
+            const normalizedBrightness = brightness / 255
+            if (normalizedBrightness < 0.3) {
+                continue
+            }
+            const starCanvas = generateStarShape(size, brightness)    
             const starTexture = new THREE.CanvasTexture(starCanvas)
             starTexture.needsUpdate = true
-
-            stars.push({
+            
+            const star = {
                 x: (x / maskData.width) * 2 - 1,
                 y: -(y / maskData.height) * 2 + 1,
-                brightness: brightness / 255,
+                brightness: normalizedBrightness,
                 texture: starTexture
-            })
+            }
+
+            stars.push(star)
         }
     }
 
