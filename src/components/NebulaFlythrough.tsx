@@ -89,8 +89,13 @@ export const NebulaFlythrough = () => {
         ]).then(([colorTexture, depthTexture]) => {
             console.log('Both textures loaded, creating mesh...')
             
-            // Create a simple plane geometry with more segments for better displacement
-            const geometry = new THREE.PlaneGeometry(10, 10, 256, 256)
+            // Calculate aspect ratio from the loaded texture
+            const imageAspectRatio = colorTexture.image.width / colorTexture.image.height;
+            const planeWidth = 10;
+            const planeHeight = planeWidth / imageAspectRatio;
+            
+            // Create a plane geometry with the correct aspect ratio
+            const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight, 256, 256)
             
             // Create a custom shader material
             const vertexShader = `
