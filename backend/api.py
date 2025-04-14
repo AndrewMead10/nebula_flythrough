@@ -128,16 +128,16 @@ async def get_image(image_type: str, image_id: int):
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
-        # If the image is a TIFF, convert to JPEG with 95% quality
+        # If the image is a TIFF, convert to PNG
         if Path(file_path).suffix.lower() in ['.tif', '.tiff']:
-            # Create a BytesIO object to store the JPEG
+            # Create a BytesIO object to store the PNG
             output_buffer = io.BytesIO()
-            img.save(output_buffer, format='JPEG', quality=95)
+            img.save(output_buffer, format='PNG')
             encoded_string = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
             return JSONResponse(
                 content={
                     "image": encoded_string,
-                    "format": "jpeg"
+                    "format": "png"
                 }
             )
         else:
