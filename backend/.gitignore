@@ -1,1 +1,5 @@
 .venv
+images.db
+__pycache__
+temp_images
+.fuse*

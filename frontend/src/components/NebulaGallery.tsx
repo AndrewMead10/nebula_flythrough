@@ -19,8 +19,16 @@ type PaginationData = {
     per_page: number
 }
 
+type ProcessedImage = {
+    id: number
+    originalImage: string
+    starlessImage: string
+    maskImage: string
+    created_at: string
+}
+
 export default function NebulaGallery() {
-    const [images, setImages] = useState<ImageData[]>([])
+    const [images, setImages] = useState<ProcessedImage[]>([])
     const [pagination, setPagination] = useState<PaginationData>({
         current_page: 1,
         total_pages: 1,
@@ -34,7 +42,33 @@ export default function NebulaGallery() {
             setLoading(true)
             const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page))
             const data = await response.json()
-            setImages(data.images)
+            
+            // Fetch base64 images for each image
+            const processedImages = await Promise.all(
+                data.images.map(async (image: ImageData) => {
+                    const [originalResponse, starlessResponse, maskResponse] = await Promise.all([
+                        fetch(API_ENDPOINTS.GET_IMAGE('original', image.id)),
+                        fetch(API_ENDPOINTS.GET_IMAGE('starless', image.id)),
+                        fetch(API_ENDPOINTS.GET_IMAGE('mask', image.id))
+                    ]);
+
+                    const [originalData, starlessData, maskData] = await Promise.all([
+                        originalResponse.json(),
+                        starlessResponse.json(),
+                        maskResponse.json()
+                    ]);
+
+                    return {
+                        id: image.id,
+                        originalImage: `data:image/${originalData.format};base64,${originalData.image}`,
+                        starlessImage: `data:image/${starlessData.format};base64,${starlessData.image}`,
+                        maskImage: `data:image/${maskData.format};base64,${maskData.image}`,
+                        created_at: image.created_at
+                    };
+                })
+            );
+
+            setImages(processedImages)
             setPagination(data.pagination)
         } catch (error) {
             console.error('Error fetching images:', error)
@@ -67,9 +101,9 @@ export default function NebulaGallery() {
                 {images.map((image) => (
                     <div key={image.id} className="relative h-96 rounded-lg overflow-hidden shadow-lg">
                         <NebulaFlythrough
-                            starlessImage={API_ENDPOINTS.GET_IMAGE('starless', image.id)}
-                            starfulImage={API_ENDPOINTS.GET_IMAGE('original', image.id)}
-                            maskImage={API_ENDPOINTS.GET_IMAGE('mask', image.id)}
+                            starlessImage={image.starlessImage}
+                            starfulImage={image.originalImage}
+                            maskImage={image.maskImage}
                         />
                         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                             <p className="text-sm text-gray-300">
@@ -79,8 +113,9 @@ export default function NebulaGallery() {
                     </div>
                 ))}
             </div>
-
-            <div className="flex justify-center items-center space-x-4">
+            
+            {/* Pagination controls */}
+            <div className="flex justify-center gap-4">
                 <button
                     onClick={() => handlePageChange(pagination.current_page - 1)}
                     disabled={pagination.current_page === 1}
@@ -88,11 +123,9 @@ export default function NebulaGallery() {
                 >
                     Previous
                 </button>
-                
-                <span className="text-lg">
+                <span className="px-4 py-2">
                     Page {pagination.current_page} of {pagination.total_pages}
                 </span>
-                
                 <button
                     onClick={() => handlePageChange(pagination.current_page + 1)}
                     disabled={pagination.current_page === pagination.total_pages}

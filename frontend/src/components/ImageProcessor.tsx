@@ -34,10 +34,27 @@ export default function ImageProcessor() {
 
             const data = await response.json();
             
-            // Set the image URLs
-            setOriginalImage(API_ENDPOINTS.GET_IMAGE('original', data.image_id));
-            setStarlessImage(API_ENDPOINTS.GET_IMAGE('starless', data.image_id));
-            setMaskImage(API_ENDPOINTS.GET_IMAGE('mask', data.image_id));
+            // Fetch and set the base64 images
+            const [originalResponse, starlessResponse, maskResponse] = await Promise.all([
+                fetch(API_ENDPOINTS.GET_IMAGE('original', data.image_id)),
+                fetch(API_ENDPOINTS.GET_IMAGE('starless', data.image_id)),
+                fetch(API_ENDPOINTS.GET_IMAGE('mask', data.image_id))
+            ]);
+
+            if (!originalResponse.ok || !starlessResponse.ok || !maskResponse.ok) {
+                throw new Error('Failed to fetch processed images');
+            }
+
+            const [originalData, starlessData, maskData] = await Promise.all([
+                originalResponse.json(),
+                starlessResponse.json(),
+                maskResponse.json()
+            ]);
+
+            // Set the base64 images with data URL prefix
+            setOriginalImage(`data:image/${originalData.format};base64,${originalData.image}`);
+            setStarlessImage(`data:image/${starlessData.format};base64,${starlessData.image}`);
+            setMaskImage(`data:image/${maskData.format};base64,${maskData.image}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {

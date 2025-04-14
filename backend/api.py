@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import uvicorn
 from starnet_v1_TF2 import StarNet
 import os
@@ -7,10 +7,20 @@ from PIL import Image
 import io
 import shutil
 from pathlib import Path
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from database import ImageDatabase
+import base64
 
 app = FastAPI(title="StarNet API", description="API for removing stars from astronomical images")
+
+# add cors
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize StarNet model
 starnet = StarNet(mode='RGB')
@@ -33,6 +43,9 @@ async def process_image(file: UploadFile = File(...)):
         # Create unique filenames for this request
         input_path = TEMP_DIR / f"input_{file.filename}"
         output_path = TEMP_DIR / f"starless_{file.filename.replace('.jpg', '.tif').replace('.jpeg', '.tif')}"
+
+        print(input_path)
+        print(output_path)
         
         # Save uploaded file
         with open(input_path, "wb") as buffer:
@@ -61,6 +74,7 @@ async def process_image(file: UploadFile = File(...)):
         }
         
     except Exception as e:
+        print(e)
         # Clean up any files in case of error
         if input_path.exists():
             input_path.unlink()
@@ -78,6 +92,7 @@ async def get_image(image_type: str, image_id: int):
     """
     Retrieve a processed image by image_id.
     image_type can be either 'original', 'starless', or 'mask'
+    Returns the image as a base64 encoded string
     """
     if image_type not in ['original', 'starless', 'mask']:
         return JSONResponse(
@@ -107,7 +122,34 @@ async def get_image(image_type: str, image_id: int):
             content={"error": "Image file not found"}
         )
     
-    return FileResponse(file_path)
+    # Read the image file
+    with Image.open(file_path) as img:
+        # Convert to RGB if necessary (in case of RGBA or other modes)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # If the image is a TIFF, convert to JPEG with 95% quality
+        if Path(file_path).suffix.lower() in ['.tif', '.tiff']:
+            # Create a BytesIO object to store the JPEG
+            output_buffer = io.BytesIO()
+            img.save(output_buffer, format='JPEG', quality=95)
+            encoded_string = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
+            return JSONResponse(
+                content={
+                    "image": encoded_string,
+                    "format": "jpeg"
+                }
+            )
+        else:
+            # For non-TIFF images, read and encode as is
+            with open(file_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            return JSONResponse(
+                content={
+                    "image": encoded_string,
+                    "format": Path(file_path).suffix[1:]  # Get file extension without the dot
+                }
+            )
 
 @app.get("/images")
 async def get_all_images():

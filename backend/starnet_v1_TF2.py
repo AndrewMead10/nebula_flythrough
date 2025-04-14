@@ -126,55 +126,20 @@ class StarNet():
         output_lum = 0.299 * output[:,:,0] + 0.587 * output[:,:,1] + 0.114 * output[:,:,2]
         
         # Calculate the difference in luminance
-        diff = np.abs(original_lum - output_lum)
+        mask = np.abs(original_lum - output_lum)
         
         # Normalize the difference to [0,1]
-        diff = (diff - diff.min()) / (diff.max() - diff.min() + 1e-8)
-        
-        # Apply adaptive thresholding
-        # First get the mean and standard deviation of differences
-        mean_diff = np.mean(diff)
-        std_diff = np.std(diff)
-        
-        # Use a higher threshold based on both mean and standard deviation
-        threshold = mean_diff * 6.0 + std_diff * 2.0
-        
-        # Create initial mask
-        mask = (diff > threshold).astype(np.float32)
-        
-        # Remove small noise using morphological operations
-        from scipy import ndimage
-        
-        # First remove very small noise
-        mask = ndimage.binary_opening(mask, structure=np.ones((3,3)))
-        
-        # Then remove slightly larger artifacts
-        mask = ndimage.binary_opening(mask, structure=np.ones((5,5)))
-        
-        # Fill small holes in stars
-        mask = ndimage.binary_closing(mask, structure=np.ones((3,3)))
-        
-        # Remove isolated pixels again after closing
-        mask = ndimage.binary_opening(mask, structure=np.ones((2,2)))
-        
-        # Optional: Label connected components and remove very small ones
-        labels, num_features = ndimage.label(mask)
-        if num_features > 0:
-            # Remove components smaller than 5 pixels
-            for i in range(1, num_features + 1):
-                component = (labels == i)
-                if np.sum(component) < 5:
-                    mask[component] = 0
+        mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
         
         # Save the starless image
         if input_dtype == 'uint8':
-            tiff.imsave(out_name, (output * 255).astype('uint8'))
+            tiff.imwrite(out_name, (output * 255).astype('uint8'))
         else:
-            tiff.imsave(out_name, (output * 255 * 255).astype('uint16'))
+            tiff.imwrite(out_name, (output * 255 * 255).astype('uint16'))
             
         # Save the star mask
         mask_filename = out_name.replace('.tif', '_mask.tif')
-        tiff.imsave(mask_filename, (mask * 255).astype('uint8'))
+        tiff.imwrite(mask_filename, (mask * 255).astype('uint8'))
         
         print(f"Saved starless image to: {out_name}")
         print(f"Saved star mask to: {mask_filename}")
