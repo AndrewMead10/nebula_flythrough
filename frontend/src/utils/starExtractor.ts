@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { StarData } from '../types/nebula'
+import { findStarBounds } from './starBounds'
 
 export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLImageElement): StarData[] => {
     const canvas = document.createElement('canvas')
@@ -14,7 +15,7 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
 
     const stars: StarData[] = []
     const threshold = 100
-    const centerThreshold = 200
+    const centerThreshold = 100
     const visited = new Set<string>() 
     const centerPoints: [number, number, number][] = []
 
@@ -51,52 +52,14 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
     }
     
     centerPoints.sort((a, b) => b[2] - a[2])
-    
-    const findStarBounds = (startX: number, startY: number): { minX: number, minY: number, maxX: number, maxY: number, pixels: number, centerBrightness: number } => {
-        const bounds = { minX: startX, minY: startY, maxX: startX, maxY: startY, pixels: 0, centerBrightness: 0 }
-        const queue = [[startX, startY]]
-        visited.add(`${startX},${startY}`)
-        let lastBrightness = 0
-        
-        const centerI = (startY * maskData.width + startX) * 4
-        bounds.centerBrightness = maskData.data[centerI]
 
-        while (queue.length > 0) {
-            const [x, y] = queue.shift()!
-            const i = (y * maskData.width + x) * 4
-            const brightness = maskData.data[i]
-
-            if (brightness > threshold && brightness >= lastBrightness) {
-                bounds.minX = Math.min(bounds.minX, x)
-                bounds.minY = Math.min(bounds.minY, y)
-                bounds.maxX = Math.max(bounds.maxX, x)
-                bounds.maxY = Math.max(bounds.maxY, y)
-                bounds.pixels++
-
-                const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
-                for (const [dx, dy] of directions) {
-                    const newX = x + dx
-                    const newY = y + dy
-                    const key = `${newX},${newY}`
-                    
-                    if (newX >= 0 && newX < maskData.width && 
-                        newY >= 0 && newY < maskData.height && 
-                        !visited.has(key)) {
-                        visited.add(key)
-                        queue.push([newX, newY])
-                    }
-                }
-            }
-            lastBrightness = brightness
-        }
-        return bounds
-    }
+    console.log('found center points', centerPoints)        
 
     for (const [x, y, brightness] of centerPoints) {
         const key = `${x},${y}`
         
         if (!visited.has(key)) {
-            const bounds = findStarBounds(x, y)
+            const bounds = findStarBounds(x, y, maskData, threshold)
             
             const width = bounds.maxX - bounds.minX + 1
             const height = bounds.maxY - bounds.minY + 1
@@ -157,6 +120,8 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
             })
         }
     }
+
+    console.log('stars', stars)
 
     return stars
 } 
