@@ -67,4 +67,10 @@ class ImageDatabase:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT COUNT(*) FROM images')
-            return cursor.fetchone()[0] 
+            return cursor.fetchone()[0]
+
+    def delete_image(self, image_id: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM images WHERE id = ?', (image_id,))
+            conn.commit() 

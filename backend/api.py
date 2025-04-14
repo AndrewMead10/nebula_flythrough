@@ -214,6 +214,38 @@ async def get_paginated_images(page: int = 1, per_page: int = 5):
         }
     }
 
+@app.delete("/image/{image_id}")
+async def delete_image(image_id: int):
+    """
+    Delete an image and its associated files from the system.
+    """
+    try:
+        # Get image paths from database
+        image_data = db.get_image_paths(image_id)
+        if not image_data:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Image not found"}
+            )
+        
+        original_path, starless_path, mask_path, _ = image_data
+        
+        # Delete files
+        for path in [original_path, starless_path, mask_path]:
+            if Path(path).exists():
+                Path(path).unlink()
+        
+        # Delete from database
+        db.delete_image(image_id)
+        
+        return {"message": "Image deleted successfully"}
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
 @app.get("/")
 async def root():
     """Welcome message and API information."""
@@ -223,7 +255,8 @@ async def root():
             "POST /process_image/": "Upload an image to process",
             "GET /image/{image_type}/{image_id}": "Retrieve a processed image",
             "GET /images": "Get all processed images",
-            "GET /images/paginated": "Get paginated images"
+            "GET /images/paginated": "Get paginated images",
+            "DELETE /image/{image_id}": "Delete an image"
         },
         "supported_formats": ["JPEG", "PNG", "TIFF"]
     }

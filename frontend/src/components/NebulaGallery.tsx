@@ -81,6 +81,27 @@ export default function NebulaGallery() {
         router.push(`/gallery/${id}`)
     }
 
+    const handleDelete = async (id: number, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent the click from triggering the image click
+        if (window.confirm('Are you sure you want to delete this image?')) {
+            try {
+                const response = await fetch(API_ENDPOINTS.DELETE_IMAGE(id), {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    // Refresh the current page of images
+                    fetchImages(pagination.current_page);
+                } else {
+                    console.error('Failed to delete image');
+                }
+            } catch (error) {
+                console.error('Error deleting image:', error);
+            }
+        }
+    }
+
     if (loading) {
         return <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"></div>
@@ -110,6 +131,12 @@ export default function NebulaGallery() {
                             <p className="text-sm text-purple-300 mt-1">
                                 Click to view interactive 3D version
                             </p>
+                            <button
+                                onClick={(e) => handleDelete(image.id, e)}
+                                className="mt-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 ))}
