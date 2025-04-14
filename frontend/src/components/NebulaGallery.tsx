@@ -1,8 +1,9 @@
 'use client'
 
 import { API_ENDPOINTS } from '@/constants'
-import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 type ImageData = {
     id: number
@@ -36,9 +37,9 @@ export default function NebulaGallery() {
     })
     const [loading, setLoading] = useState(true)
 
-    const fetchImages = async (page: number) => {
+    const fetchImages = useCallback(async (page: number) => {
+        setLoading(true)
         try {
-            setLoading(true)
             const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page), {
                 credentials: 'include'
             })
@@ -65,11 +66,11 @@ export default function NebulaGallery() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [pagination.per_page])
 
     useEffect(() => {
         fetchImages(1)
-    }, [])
+    }, [fetchImages])
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= pagination.total_pages) {
@@ -119,10 +120,11 @@ export default function NebulaGallery() {
                         className="relative h-96 rounded-lg overflow-hidden shadow-lg cursor-pointer transform transition-transform hover:scale-105"
                         onClick={() => handleImageClick(image.id)}
                     >
-                        <img 
+                        <Image 
                             src={image.originalImage} 
                             alt={`Nebula ${image.id}`}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                         />
                         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                             <p className="text-sm text-gray-300">
