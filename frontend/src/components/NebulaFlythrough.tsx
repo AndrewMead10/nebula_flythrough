@@ -20,6 +20,8 @@ type NebulaScene = {
     startTime: number
     animationDuration: number
     animationProgress: number
+    starSprites?: THREE.Sprite[]
+    mesh?: THREE.Mesh
 }
 
 export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: NebulaFlythroughProps) => {
@@ -139,12 +141,23 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
 
             const currentTime = Date.now()
             const elapsedTime = currentTime - startTime
-            sceneRef.current.animationProgress = Math.min(elapsedTime / animationDuration, 1)
+            
+            // Calculate a value between 0 and 1 that loops back and forth
+            const rawProgress = (elapsedTime / animationDuration) % 2
+            const progress = rawProgress <= 1 ? rawProgress : 2 - rawProgress
+            
+            // Apply easing function for smoother transitions at direction changes
+            const easedProgress = progress < 0.5 
+                ? 2 * progress * progress 
+                : 1 - Math.pow(-2 * progress + 2, 2) / 2
+            
+            sceneRef.current.animationProgress = easedProgress
 
+            // Move camera between z=0 and z=7 with easing
             camera.position.z = THREE.MathUtils.lerp(
                 0,
-                7,
-                sceneRef.current.animationProgress
+                6,
+                easedProgress
             )
 
             renderer.render(scene, camera)
