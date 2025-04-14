@@ -48,8 +48,11 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
                         resolve(texture)
                     },
                     undefined,
-                    reject
-                )
+                    (error) => {
+                        console.error('Error in starless image loading:', error)
+                        reject(error)
+                    }
+                )                
             }),
             new Promise<THREE.Texture>((resolve, reject) => {
                 textureLoader.load(
@@ -59,19 +62,28 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
                         resolve(texture)
                     },
                     undefined,
-                    reject
+                    (error) => {
+                        console.error('Error in depth image loading:', error)
+                        reject(error)
+                    }
                 )
             }),
             new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image()
                 img.onload = () => resolve(img)
-                img.onerror = reject
+                img.onerror = (error) => {
+                    console.error('Error in starful image loading:', error)
+                    reject(error)
+                }
                 img.src = starfulImage
             }),
             new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image()
                 img.onload = () => resolve(img)
-                img.onerror = reject
+                img.onerror = (error) => {
+                    console.error('Error in mask image loading:', error)
+                    reject(error)
+                }
                 img.src = maskImage
             })
         ]).then(([colorTexture, depthTexture, starfulImage, maskImage]) => {
