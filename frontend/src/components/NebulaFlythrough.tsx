@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { extractStarData } from '../utils/starExtractor'
 import { createNebulaScene } from './NebulaScene'
@@ -12,10 +12,19 @@ type NebulaFlythroughProps = {
     maskImage: string
 }
 
+type NebulaScene = {
+    cleanup: () => void
+    scene: THREE.Scene
+    camera: THREE.Camera
+    renderer: THREE.WebGLRenderer
+    startTime: number
+    animationDuration: number
+    animationProgress: number
+}
+
 export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: NebulaFlythroughProps) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const sceneRef = useRef<any>(null)
-    const [isInitialized, setIsInitialized] = useState(false)
+    const sceneRef = useRef<NebulaScene | null>(null)
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -114,12 +123,9 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
             
             scene.scene.add(mesh)
             
-            if (!isInitialized) {
-                const starData = extractStarData(maskImage, starfulImage)
-                const starSprites = createStarSprites(scene.scene, starData, planeWidth, planeHeight)
-                scene.starSprites = starSprites
-                setIsInitialized(true)
-            }
+            const starData = extractStarData(maskImage, starfulImage)
+            const starSprites = createStarSprites(scene.scene, starData, planeWidth, planeHeight)
+            scene.starSprites = starSprites
             
             scene.mesh = mesh
             
