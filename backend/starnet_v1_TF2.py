@@ -8,6 +8,10 @@ import tensorflow.keras.layers as L
 import copy
 import tifffile as tiff
 
+class SubtractLayer(L.Layer):
+    def call(self, inputs):
+        return inputs[0] - inputs[1]
+
 class StarNet():
     def __init__(self, mode:str, window_size:int = 512, stride:int = 256):
         assert mode in ['RGB', 'Greyscale'], "Mode should be either RGB or Greyscale"
@@ -176,50 +180,111 @@ class StarNet():
         print(f"Saved star mask to: {mask_filename}")
         
     def _generator(self, m):
-        """U-Net architecture for the generator."""
+        layers = []
+    
         filters = [64, 128, 256, 512, 512, 512, 512, 512, 512, 512, 512, 512, 256, 128, 64]
         
         input = L.Input(shape=(self.window_size, self.window_size, self.input_channels), name = "gen_input_image")
         
-        # Encoder path
-        layers = []
-        
-        # layer 0 (first encoding layer)
-        convolved = L.Conv2D(filters[0], kernel_size = 4, strides = (2, 2), padding = "same", 
-                           kernel_initializer = tf.initializers.GlorotUniform())(input)
+        # layer 0
+        convolved = L.Conv2D(filters[0], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(input)
         layers.append(convolved)
             
-        # encoding layers 1-7
-        for i in range(7):
-            rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
-            convolved = L.Conv2D(filters[i+1], kernel_size = 4, strides = (2, 2), padding = "same", 
-                               kernel_initializer = tf.initializers.GlorotUniform())(rectified)
-            normalized = L.BatchNormalization()(convolved, training = True)
-            layers.append(normalized)
+        # layer 1
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[1], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
             
-        # Decoder path
-        # layer 8 (first decoding layer)
+        # layer 2
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[2], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+            
+        # layer 3
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[3], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+            
+        # layer 4
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[4], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+            
+        # layer 5
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[5], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+        
+        # layer 6
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[6], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+        
+        # layer 7
+        rectified = L.LeakyReLU(alpha = 0.2)(layers[-1])
+        convolved = L.Conv2D(filters[7], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(convolved, training = True)
+        layers.append(normalized)
+        
+        # layer 8
         rectified = L.ReLU()(layers[-1])
-        deconvolved = L.Conv2DTranspose(filters[8], kernel_size = 4, strides = (2, 2), padding = "same", 
-                                      kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        deconvolved = L.Conv2DTranspose(filters[8], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
         normalized = L.BatchNormalization()(deconvolved, training = True)
         layers.append(normalized)
             
-        # decoding layers 9-15 with skip connections
-        for i in range(7):
-            concatenated = L.Concatenate(axis=3)([layers[-1], layers[6-i]])
-            rectified = L.ReLU()(concatenated)
-            deconvolved = L.Conv2DTranspose(filters[9+i], kernel_size = 4, strides = (2, 2), padding = "same", 
-                                          kernel_initializer = tf.initializers.GlorotUniform())(rectified)
-            normalized = L.BatchNormalization()(deconvolved, training = True)
-            layers.append(normalized)
+        # layer 9
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[6]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[9], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
+        
+        # layer 10
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[5]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[10], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
             
-        # Final layer
+        # layer 11
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[4]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[11], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
+            
+        # layer 12
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[3]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[12], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
+            
+        # layer 13
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[2]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[13], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
+            
+        # layer 14
+        concatenated = L.Concatenate(axis=3)([layers[-1], layers[1]])
+        rectified = L.ReLU()(concatenated)
+        deconvolved = L.Conv2DTranspose(filters[14], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        normalized = L.BatchNormalization()(deconvolved, training = True)
+        layers.append(normalized)
+            
+        # layer 15
         concatenated = L.Concatenate(axis=3)([layers[-1], layers[0]])
         rectified = L.ReLU()(concatenated)
-        deconvolved = L.Conv2DTranspose(self.input_channels, kernel_size = 4, strides = (2, 2), padding = "same", 
-                                      kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        deconvolved = L.Conv2DTranspose(self.input_channels, kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
         rectified = L.ReLU()(deconvolved)
-        output = L.Subtract()([input, rectified])
+        output = SubtractLayer()([input, rectified])
         
-        return K.Model(inputs = input, outputs = output, name = "generator") 
+        return K.Model(inputs = input, outputs = output, name = "generator")

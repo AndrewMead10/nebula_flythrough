@@ -7,7 +7,13 @@ import { extractStarData } from '../utils/starExtractor'
 import { createNebulaScene } from './NebulaScene'
 import { createStarSprites } from './StarSprites'
 
-export const NebulaFlythrough = () => {
+type NebulaFlythroughProps = {
+    starlessImage: string
+    starfulImage: string
+    maskImage: string
+}
+
+export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: NebulaFlythroughProps) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<SceneRef | null>(null)
 
@@ -24,7 +30,7 @@ export const NebulaFlythrough = () => {
         Promise.all([
             new Promise<THREE.Texture>((resolve, reject) => {
                 textureLoader.load(
-                    '/starless.png',
+                    starlessImage,
                     (texture) => {
                         texture.needsUpdate = true
                         resolve(texture)
@@ -48,13 +54,13 @@ export const NebulaFlythrough = () => {
                 const img = new Image()
                 img.onload = () => resolve(img)
                 img.onerror = reject
-                img.src = '/starful.jpg'
+                img.src = starfulImage
             }),
             new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image()
                 img.onload = () => resolve(img)
                 img.onerror = reject
-                img.src = '/starless_mask.png'
+                img.src = maskImage
             })
         ]).then(([colorTexture, depthTexture, starfulImage, maskImage]) => {
             const imageAspectRatio = colorTexture.image.width / colorTexture.image.height
@@ -141,7 +147,7 @@ export const NebulaFlythrough = () => {
                 sceneRef.cleanup()
             }
         }
-    }, [])
+    }, [starlessImage, starfulImage, maskImage])
 
     return <div ref={containerRef} className="w-full h-full absolute inset-0" />
 }

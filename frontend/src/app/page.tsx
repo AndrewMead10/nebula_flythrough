@@ -1,9 +1,9 @@
-import ClientNebulaWrapper from '@/components/ClientNebulaWrapper'
+import ImageProcessor from '@/components/ImageProcessor'
 
 export default function Home() {
     return (
         <main className="w-full h-screen overflow-hidden">
-            <ClientNebulaWrapper />
+            <ImageProcessor />
         </main>
     )
 }
