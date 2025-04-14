@@ -22,7 +22,6 @@ export default function ImageProcessor() {
             const formData = new FormData();
             formData.append('file', file);
 
-            // Upload and process the image
             const response = await fetch(API_ENDPOINTS.PROCESS_IMAGE, {
                 method: 'POST',
                 body: formData,
@@ -35,7 +34,6 @@ export default function ImageProcessor() {
 
             const data = await response.json();
             
-            // Fetch and set the base64 images
             const [originalResponse, starlessResponse, maskResponse] = await Promise.all([
                 fetch(API_ENDPOINTS.GET_IMAGE('original', data.image_id)),
                 fetch(API_ENDPOINTS.GET_IMAGE('starless', data.image_id)),
@@ -52,7 +50,6 @@ export default function ImageProcessor() {
                 maskResponse.json()
             ]);
 
-            // Set the base64 images with data URL prefix
             setOriginalImage(`data:image/${originalData.format};base64,${originalData.image}`);
             setStarlessImage(`data:image/${starlessData.format};base64,${starlessData.image}`);
             setMaskImage(`data:image/${maskData.format};base64,${maskData.image}`);
@@ -64,21 +61,28 @@ export default function ImageProcessor() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="flex flex-col items-center justify-center min-h-[70vh] p-4">
             {!originalImage && !starlessImage && !maskImage ? (
                 <div className="w-full max-w-md mb-8">
-                    <label className="block w-full p-4 text-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500">
+                    <label className="block w-full p-8 text-center border-2 border-dashed border-purple-500 rounded-lg cursor-pointer hover:border-pink-500 transition-all duration-300 space-gradient relative group">
+                        <div className="absolute inset-0 bg-purple-500/10 group-hover:bg-pink-500/10 transition-all duration-300"></div>
                         <input
                             type="file"
                             className="hidden"
                             accept="image/*"
                             onChange={handleFileUpload}
                         />
-                        <div className="text-gray-600">
+                        <div className="relative z-10">
                             {isProcessing ? (
-                                <span>Processing image...</span>
+                                <div className="space-y-2">
+                                    <div className="text-purple-300 glow-text">Processing nebula data...</div>
+                                    <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                </div>
                             ) : (
-                                <span>Click to upload an image</span>
+                                <div className="space-y-2">
+                                    <div className="text-2xl text-purple-300 glow-text">🚀 Upload Nebula Image</div>
+                                    <div className="text-purple-200">Click to begin your cosmic journey</div>
+                                </div>
                             )}
                         </div>
                     </label>
@@ -86,7 +90,7 @@ export default function ImageProcessor() {
             ) : null}
 
             {error && (
-                <div className="text-red-500 mb-4">
+                <div className="text-red-400 bg-red-900/20 border border-red-500/50 rounded-lg px-4 py-2 mb-4 glow-text">
                     {error}
                 </div>
             )}
