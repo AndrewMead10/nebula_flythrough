@@ -3,7 +3,6 @@
 import { API_ENDPOINTS } from '@/constants'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { API_ENDPOINTS } from '@/constants'
 
 type ImageData = {
     id: number
