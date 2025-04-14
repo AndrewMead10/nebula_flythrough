@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from database import ImageDatabase
 import base64
+import requests
 
 app = FastAPI(title="StarNet API", description="API for removing stars from astronomical images")
 
@@ -21,6 +22,23 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Create weights directory if it doesn't exist
+weights_dir = Path("weights")
+weights_dir.mkdir(exist_ok=True)
+
+# Check if weights file exists, if not download it
+weights_path = weights_dir / "weights_G_RGB.h5"
+if not weights_path.exists():
+    print("Downloading weights file...")
+    url = "https://storage.googleapis.com/sundai-test-bucket/weights_G_RGB.h5"
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(weights_path, "wb") as f:
+            f.write(response.content)
+        print("Weights file downloaded successfully")
+    else:
+        raise Exception(f"Failed to download weights file. Status code: {response.status_code}")
 
 # Initialize StarNet model
 starnet = StarNet(mode='RGB')
