@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { StarData } from '../types/nebula'
 import { findStarBounds } from './starBounds'
 
+const useActualSprites = true
+
 const generateStarShape = (size: number, brightness: number): HTMLCanvasElement => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -116,8 +118,52 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
             if (normalizedBrightness < 0.3) {
                 continue
             }
-            const starCanvas = cutSprite(starfulImage, size, ctx, bounds, padding)
-            if (!starCanvas) continue
+            let starCanvas = document.createElement('canvas')
+            const starCtx = starCanvas.getContext('2d')
+            if (!starCtx) continue
+
+            starCanvas.width = finalSize
+            starCanvas.height = finalSize
+
+            if (useActualSprites) {
+                const sourceX = Math.max(0, bounds.minX - padding)
+                const sourceY = Math.max(0, bounds.minY - padding)
+                const sourceWidth = Math.min(finalSize, maskImage.width - sourceX)
+                const sourceHeight = Math.min(finalSize, maskImage.height - sourceY)
+
+                starCtx.drawImage(
+                    starfulImage,
+                    sourceX,
+                    sourceY,
+                    sourceWidth,
+                    sourceHeight,
+                    0,
+                    0,
+                    sourceWidth,
+                    sourceHeight
+                )
+
+                const starImageData = starCtx.getImageData(0, 0, finalSize, finalSize)
+                const maskImageData = ctx.getImageData(sourceX, sourceY, sourceWidth, sourceHeight)
+
+                for (let py = 0; py < sourceHeight; py++) {
+                    for (let px = 0; px < sourceWidth; px++) {
+                        const maskIndex = (py * sourceWidth + px) * 4
+                        const starIndex = (py * finalSize + px) * 4
+                        
+                        let maskValue = maskImageData.data[maskIndex] / 255
+                        if (maskValue < 0.6) {
+                            maskValue = 0
+                        }
+                        starImageData.data[starIndex + 3] = Math.floor(maskValue * 255)
+                    }
+                }
+
+                starCtx.putImageData(starImageData, 0, 0)
+            } else {
+                starCanvas = generateStarShape(finalSize, normalizedBrightness)
+            }
+            
             const starTexture = new THREE.CanvasTexture(starCanvas)
             starTexture.needsUpdate = true
             
@@ -136,45 +182,3 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
 
     return stars
 } 
-
-function cutSprite(starfulImage: HTMLImageElement, size: number, ctx: CanvasRenderingContext2D, bounds: { minX: number, minY: number, maxX: number, maxY: number }, padding: number): HTMLCanvasElement | undefined {
-    const sourceX = Math.max(0, bounds.minX - padding)
-    const sourceY = Math.max(0, bounds.minY - padding)
-    const sourceWidth = Math.min(size, starfulImage.width - sourceX)
-    const sourceHeight = Math.min(size, starfulImage.height - sourceY)
-
-    const starCanvas = document.createElement('canvas')
-    const starCtx = starCanvas.getContext('2d')
-    if (!starCtx) return undefined
-
-    starCtx.drawImage(
-        starfulImage,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        sourceWidth,
-        sourceHeight
-    )
-
-    const starImageData = starCtx.getImageData(0, 0, size, size)
-    const maskImageData = ctx.getImageData(sourceX, sourceY, sourceWidth, sourceHeight)
-
-    for (let py = 0; py < sourceHeight; py++) {
-        for (let px = 0; px < sourceWidth; px++) {
-            const maskIndex = (py * sourceWidth + px) * 4
-            const starIndex = (py * size + px) * 4
-            
-            let maskValue = maskImageData.data[maskIndex] / 255
-            if (maskValue < 0.6) {
-                maskValue = 0
-            }
-            starImageData.data[starIndex + 3] = Math.floor(maskValue * 255)
-        }
-    }
-
-    starCtx.putImageData(starImageData, 0, 0)
-    return starCtx.canvas
-}
