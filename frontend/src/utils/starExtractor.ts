@@ -59,7 +59,7 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
 
     const stars: StarData[] = []
     const threshold = 100
-    const centerThreshold = 100
+    const centerThreshold = 200
     const visited = new Set<string>() 
     const centerPoints: [number, number, number][] = []
 
