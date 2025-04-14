@@ -99,6 +99,9 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
 
     console.log('found center points', centerPoints)        
 
+    const coveredRegions = new Set<string>()
+    const minDistanceBetweenStars = 10
+
     for (const [x, y, brightness] of centerPoints) {
         const key = `${x},${y}`
         
@@ -118,6 +121,35 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
             if (normalizedBrightness < 0.3) {
                 continue
             }
+
+            const starRadius = finalSize / 2
+            const minX = Math.max(0, x - starRadius)
+            const maxX = Math.min(maskData.width - 1, x + starRadius)
+            const minY = Math.max(0, y - starRadius)
+            const maxY = Math.min(maskData.height - 1, y + starRadius)
+
+            let isOverlapping = false
+            for (let checkY = minY; checkY <= maxY; checkY++) {
+                for (let checkX = minX; checkX <= maxX; checkX++) {
+                    const regionKey = `${checkX},${checkY}`
+                    if (coveredRegions.has(regionKey)) {
+                        const dx = checkX - x
+                        const dy = checkY - y
+                        const distance = Math.sqrt(dx * dx + dy * dy)
+                        
+                        if (distance < starRadius) {
+                            isOverlapping = true
+                            break
+                        }
+                    }
+                }
+                if (isOverlapping) break
+            }
+
+            if (isOverlapping) {
+                continue
+            }
+
             let starCanvas = document.createElement('canvas')
             const starCtx = starCanvas.getContext('2d')
             if (!starCtx) continue
@@ -175,6 +207,18 @@ export const extractStarData = (maskImage: HTMLImageElement, starfulImage: HTMLI
             }
 
             stars.push(star)
+            
+            for (let markY = minY; markY <= maxY; markY++) {
+                for (let markX = minX; markX <= maxX; markX++) {
+                    const dx = markX - x
+                    const dy = markY - y
+                    const distance = Math.sqrt(dx * dx + dy * dy)
+                    
+                    if (distance < starRadius) {
+                        coveredRegions.add(`${markX},${markY}`)
+                    }
+                }
+            }
         }
     }
 
