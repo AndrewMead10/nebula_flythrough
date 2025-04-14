@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { extractStarData } from '../utils/starExtractor'
 import { createNebulaScene } from './NebulaScene'
@@ -14,6 +14,8 @@ type NebulaFlythroughProps = {
 
 export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: NebulaFlythroughProps) => {
     const containerRef = useRef<HTMLDivElement>(null)
+    const sceneRef = useRef<any>(null)
+    const [isInitialized, setIsInitialized] = useState(false)
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -22,7 +24,8 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
             containerRef.current.removeChild(containerRef.current.firstChild)
         }
 
-        const sceneRef = createNebulaScene(containerRef.current)
+        const scene = createNebulaScene(containerRef.current)
+        sceneRef.current = scene
         const textureLoader = new THREE.TextureLoader()
         
         Promise.all([
@@ -109,29 +112,33 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
             mesh.rotation.x = 0
             mesh.rotation.y = Math.PI
             
-            sceneRef.scene.add(mesh)
+            scene.scene.add(mesh)
             
-            const starData = extractStarData(maskImage, starfulImage)
-            const starSprites = createStarSprites(sceneRef.scene, starData, planeWidth, planeHeight)
-            sceneRef.starSprites = starSprites
-            sceneRef.mesh = mesh
+            if (!isInitialized) {
+                const starData = extractStarData(maskImage, starfulImage)
+                const starSprites = createStarSprites(scene.scene, starData, planeWidth, planeHeight)
+                scene.starSprites = starSprites
+                setIsInitialized(true)
+            }
+            
+            scene.mesh = mesh
             
         }).catch(error => {
             console.error('Error in texture loading:', error)
         })
 
         const animate = () => {
-            if (!sceneRef) return
-            const { scene, camera, renderer, startTime, animationDuration } = sceneRef
+            if (!sceneRef.current) return
+            const { scene, camera, renderer, startTime, animationDuration } = sceneRef.current
 
             const currentTime = Date.now()
             const elapsedTime = currentTime - startTime
-            sceneRef.animationProgress = Math.min(elapsedTime / animationDuration, 1)
+            sceneRef.current.animationProgress = Math.min(elapsedTime / animationDuration, 1)
 
             camera.position.z = THREE.MathUtils.lerp(
                 0,
                 7,
-                sceneRef.animationProgress
+                sceneRef.current.animationProgress
             )
 
             renderer.render(scene, camera)
@@ -141,8 +148,8 @@ export const NebulaFlythrough = ({ starlessImage, starfulImage, maskImage }: Neb
         animate()
 
         return () => {
-            if (sceneRef) {
-                sceneRef.cleanup()
+            if (sceneRef.current) {
+                sceneRef.current.cleanup()
             }
         }
     }, [starlessImage, starfulImage, maskImage])
