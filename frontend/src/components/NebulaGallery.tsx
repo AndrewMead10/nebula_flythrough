@@ -1,5 +1,6 @@
 'use client'
 
+import { API_ENDPOINTS } from '@/constants'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { API_ENDPOINTS } from '@/constants'
@@ -39,7 +40,9 @@ export default function NebulaGallery() {
     const fetchImages = async (page: number) => {
         try {
             setLoading(true)
-            const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page))
+            const response = await fetch(API_ENDPOINTS.GET_PAGINATED_IMAGES(page, pagination.per_page), {
+                credentials: 'include'
+            })
             const data = await response.json()
             
             // Only fetch original images
