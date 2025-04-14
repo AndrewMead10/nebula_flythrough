@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { StarData } from '../types/nebula'
 import { findStarBounds } from './starBounds'
 
-const useActualSprites = true
+const useActualSprites = false
 
 const generateStarShape = (size: number, brightness: number): HTMLCanvasElement => {
     const canvas = document.createElement('canvas')
