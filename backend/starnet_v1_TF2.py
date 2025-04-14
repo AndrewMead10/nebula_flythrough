@@ -7,6 +7,7 @@ import tensorflow.keras as K
 import tensorflow.keras.layers as L
 import copy
 import tifffile as tiff
+import os
 
 class SubtractLayer(L.Layer):
     def call(self, inputs):
@@ -138,7 +139,8 @@ class StarNet():
             tiff.imwrite(out_name, (output * 255 * 255).astype('uint16'))
             
         # Save the star mask
-        mask_filename = out_name.replace('.tif', '_mask.tif')
+        base_name, ext = os.path.splitext(out_name)
+        mask_filename = f"{base_name}_mask{ext}"
         tiff.imwrite(mask_filename, (mask * 255).astype('uint8'))
         
         print(f"Saved starless image to: {out_name}")
