@@ -1,10 +1,12 @@
 'use client';
 
 import { API_ENDPOINTS } from '@/constants';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import NebulaFlythrough from './NebulaFlythrough';
 
 export default function ImageProcessor() {
+    const router = useRouter();
     const [originalImage, setOriginalImage] = useState<string | null>(null);
     const [starlessImage, setStarlessImage] = useState<string | null>(null);
     const [maskImage, setMaskImage] = useState<string | null>(null);
@@ -33,26 +35,7 @@ export default function ImageProcessor() {
             }
 
             const data = await response.json();
-            
-            const [originalResponse, starlessResponse, maskResponse] = await Promise.all([
-                fetch(API_ENDPOINTS.GET_IMAGE('original', data.image_id)),
-                fetch(API_ENDPOINTS.GET_IMAGE('starless', data.image_id)),
-                fetch(API_ENDPOINTS.GET_IMAGE('mask', data.image_id))
-            ]);
-
-            if (!originalResponse.ok || !starlessResponse.ok || !maskResponse.ok) {
-                throw new Error('Failed to fetch processed images');
-            }
-
-            const [originalData, starlessData, maskData] = await Promise.all([
-                originalResponse.json(),
-                starlessResponse.json(),
-                maskResponse.json()
-            ]);
-
-            setOriginalImage(`data:image/${originalData.format};base64,${originalData.image}`);
-            setStarlessImage(`data:image/${starlessData.format};base64,${starlessData.image}`);
-            setMaskImage(`data:image/${maskData.format};base64,${maskData.image}`);
+            router.push(`/gallery/${data.image_id}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
